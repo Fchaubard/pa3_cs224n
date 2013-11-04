@@ -205,6 +205,8 @@ public class CoreferenceTester<SYS extends CoreferenceSystem> {
         num -= partitions.size();
         den += goldEntity.size() - 1;
       }
+
+      //System.out.printf("rn%d, rd%d",num, den);
       return (double)num/(double)den;
     }
 
@@ -318,12 +320,14 @@ public class CoreferenceTester<SYS extends CoreferenceSystem> {
         int S = response.size();
         denom += S-1;
       }
+
       //--Error Checks
       if(numer > denom){ throw new IllegalStateException("MUC precision is broken (not your fault!)"); }
       if(denom == 0){
         if(numer != 0){ throw new IllegalStateException("MUC precisions is hella broken (not your fault!)"); }
         return 1.0;
       }
+      //System.out.printf("pn%d, pd%d",numer, denom);
       //--Return
       return ((double) numer) / ((double) denom);
     }
@@ -588,6 +592,7 @@ public class CoreferenceTester<SYS extends CoreferenceSystem> {
     System.out.print("[" + numDocs + " train]...");
     //(get serialized data)
     //((train))
+    //System.out.print(dataPath);
     File[] train = getData(dataPath, DataType.TRAIN, numDocs);
     //((dev/test))
     String dataTypeString = props.getProperty("data","dev");
