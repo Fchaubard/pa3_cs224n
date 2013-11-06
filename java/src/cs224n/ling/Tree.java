@@ -194,6 +194,38 @@ public class Tree<L> implements Serializable, Decodable {
     //--Return
     return path;
   }
+  
+  public Tree<L> getSubTree(List<Pair<L,Integer>> path){
+	  Tree<L> root = this;
+	  for (int i=0;i<path.size();i++){
+		  for (Tree<L> child : root.getChildren()){
+			  if (path.get(i).getSecond().equals(child.uniqueIndex)){
+				  root = child;
+				  break;
+			  } 
+		  }	
+	  }
+	  return root;
+  }
+
+  public int getLeafIndex(List<Pair<L,Integer>> path){
+	  Tree<L> root = this;
+	  int yieldSoFar=0;
+	  for (int i=0;i<path.size();i++){
+		  for (Tree<L> child : root.getChildren()){
+			  if (path.get(i).getSecond().equals(child.uniqueIndex)){
+				  root = child;
+				  break;
+			  } else {
+				  yieldSoFar+=child.getYield().size();  
+			  }
+		  }	
+	  }
+	  return yieldSoFar;
+  }
+  
+
+
 
   /**
    * Returns a path from the ROOT node of the tree to the leaf at the given index

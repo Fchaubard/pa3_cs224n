@@ -66,6 +66,10 @@ public class Mention implements Serializable, Decodable {
     this.parse = parse;
     this.headWordIndex = headWordIndex;
   }
+  
+  public Entity getCorefferentWith(){
+	  return corefferentWith;
+  }
 
   /**
    * The text of this mention, as a list of words
@@ -113,7 +117,11 @@ public class Mention implements Serializable, Decodable {
    * @return The clustered mention associated with this assignment
    */
   public ClusteredMention markCoreferent(Entity cluster){
-    if(corefferentWith != null && corefferentWith != cluster){ throw new IllegalArgumentException("Marking an entity as corefferent multiple times!"); }
+    if(corefferentWith != null && corefferentWith != cluster){ 
+    	System.out.printf("Mention: %s\n",this.gloss());
+    	System.out.printf("Entity: %s\n",cluster.toString());
+    	System.out.printf("coref: %s\n",corefferentWith.toString());
+    	throw new IllegalArgumentException("Marking an entity as corefferent multiple times!"); }
     cluster.add(this);
     corefferentWith = cluster;
     return new ClusteredMention(this,cluster);
