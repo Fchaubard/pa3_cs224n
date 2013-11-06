@@ -2,6 +2,7 @@ package cs224n.coref;
 
 import cs224n.util.Pair;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -116,6 +117,36 @@ public interface Feature {
 	    	
 	    }
   }
+  public static class FixedIsNoun extends Indicator {
+	    public FixedIsNoun(boolean isNoun){ 
+	    	super(isNoun); 
+	    	
+  }
+ }
+ public static class CandidateIsNoun extends Indicator {
+	    public CandidateIsNoun(boolean isNoun){ 
+	    	super(isNoun); 
+	    	
+	    }
+ }
+ public static class FixedWordLength extends IntIndicator {
+	    public FixedWordLength(int m){ 
+	    	super(m); 
+	    	
+	    }
+}
+ public static class IsHobbs extends Indicator {
+	    public IsHobbs(boolean m){ 
+	    	super(m); 
+	    	
+	    }
+}
+public static class CandidateWordLength extends IntIndicator {
+	    public CandidateWordLength(int m){ 
+	    	super(m); 
+	    	
+	    }
+}
   public static class CandidateIsButFixedIsNotPronoun extends Indicator {
 	    public CandidateIsButFixedIsNotPronoun(boolean isPronoun){ 
 	    	super(isPronoun); 
@@ -142,12 +173,14 @@ public interface Feature {
   }
   public static class IsSameSex extends Indicator {
 	    public IsSameSex(Mention mi, Mention mj){ 
-	    	super(Util.haveGenderAndAreSameGender(mi,mj).getSecond()); 
+	    	super(Util.haveGenderAndAreSameGender(mi,mj).getFirst() || Util.haveGenderAndAreSameGender(mi,mj).getSecond()); 
 	    }
   }
+
   public static class SameNumber extends Indicator {
 	    public SameNumber(Mention mi, Mention mj){ 
 	    	super(Util.haveNumberAndAreSameNumber(mi,mj).getSecond()); 
+	    	
 	    }
   }
   public static class SameHeadWord extends Indicator {
@@ -350,6 +383,89 @@ public static class FixedMentionSize extends IntIndicator {
     	super(m.text().size()); 
     }
 }   
+public static class IsMentionBetweenFixedAndCandidate extends Indicator {
+    public IsMentionBetweenFixedAndCandidate(Mention mi,Mention mj){ 
+    	super(Math.abs(mi.doc.indexOfMention(mi)-mi.doc.indexOfMention(mj))>1); 
+    }
+}   
+public static class IsFirstPersonSpeakerFixed extends Indicator {
+    public IsFirstPersonSpeakerFixed(boolean m){ 
+    	super(m); 
+    }
+}  
+public static class IsFirstPersonSpeakerCandidate extends Indicator {
+    public IsFirstPersonSpeakerCandidate(boolean m){ 
+     	super(m); 
+     }
+}  
+public static class PronounTypeFixed extends IntIndicator {
+    public PronounTypeFixed(int m){ 
+     	super(m); 
+     }
+}  
+public static class PronounTypeCandidate extends IntIndicator {
+    public PronounTypeCandidate(int m){ 
+     	super(m); 
+     }
+}  
+public static class IsCapitalizedFixed extends Indicator {
+    public IsCapitalizedFixed(Mention m){ 
+    	super(Character.isUpperCase(m.gloss().charAt(0))); 
+        
+     }
+}  
+public static class IsCapitalizedCandidate extends Indicator {
+    public IsCapitalizedCandidate(Mention m){ 
+    	super(Character.isUpperCase(m.gloss().charAt(0))); 
+     }
+}  
+public static class IsPossessiveFixed extends Indicator {
+    public IsPossessiveFixed(Mention m){ 
+    	super(m.gloss().contains("'s")); 
+        
+     }
+}  
+public static class IsPossessiveCandidate extends Indicator {
+    public IsPossessiveCandidate(Mention m){ 
+    	super(m.gloss().contains("'s"));
+     }
+}
+public static class BothAreCapitalizedAndNotPronouns extends Indicator {
+    public BothAreCapitalizedAndNotPronouns(Mention mi,Mention mj){ 
+    	super(Character.isUpperCase(mi.gloss().charAt(0)) && Character.isUpperCase(mj.gloss().charAt(0)) && Pronoun.isSomePronoun(mi.gloss())&& Pronoun.isSomePronoun(mj.gloss()) ); 
+     }
+}  
+public static class JaccardBuckets extends BucketIndicator {
+    public JaccardBuckets(Mention mi,Mention mj){ 
+    	super( (int)(jaccardSimilarity(mi.gloss(),mj.gloss())*100.0),101,4); 
+     }
+
+
+	
+	public static double jaccardSimilarity(String similar1, String similar2){
+		HashSet<String> h1 = new HashSet<String>();
+		HashSet<String> h2 = new HashSet<String>();
+		
+		for(String s: similar1.split("\\s+")){
+			h1.add(s);		
+		}
+		for(String s: similar2.split("\\s+")){
+			h2.add(s);		
+		}
+		
+		int sizeh1 = h1.size();
+		h1.retainAll(h2);
+		h2.removeAll(h1);
+		int union = sizeh1 + h2.size();
+		int intersection = h1.size();
+		
+		return (double)intersection/union;
+		
+	}
+	
+}  
+
+
   /*
    * TODO: Add values to the indicators here.
    */

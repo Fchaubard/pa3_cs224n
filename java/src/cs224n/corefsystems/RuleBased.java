@@ -107,7 +107,7 @@ public class RuleBased implements CoreferenceSystem {
 				Mention hco = hobbsCoreferent(m);
 				if (hco!=null && !hco.equals(m)){
 					String hcoString = hco.gloss();
-					System.out.printf("Found coreference %s\n", hcoString);
+					//System.out.printf("Found coreference %s\n", hcoString);
 					if (stringMatches.containsKey(hcoString)){
 						//mentions.add(m.markCoreferent(stringClusters.get(hcoString)));
 						corefs.put(m,stringMatches.get(hcoString));
@@ -168,13 +168,13 @@ public class RuleBased implements CoreferenceSystem {
 	}
 	
 	//Finds the coreferent entity for the given pronoun
-	Mention hobbsCoreferent(Mention m){
+	public static Mention hobbsCoreferent(Mention m){
 		Tree<String> sTree = m.sentence.parse;
 		
-		System.out.printf("Searching for hobbs coreference for %s\n", m.gloss());
-		System.out.printf("Sentence %s\n", m.sentence.toString());
-		System.out.printf("Sentence Parse Tree:\n");
-		System.out.println(PennTreeRenderer.render(sTree));
+		//System.out.printf("Searching for hobbs coreference for %s\n", m.gloss());
+		//System.out.printf("Sentence %s\n", m.sentence.toString());
+		//System.out.printf("Sentence Parse Tree:\n");
+		//System.out.println(PennTreeRenderer.render(sTree));
 		
 		//Proposed node
 		Mention proposedMention;
@@ -191,9 +191,9 @@ public class RuleBased implements CoreferenceSystem {
 		if (npIndex==0)
 			return null;
 		
-		System.out.printf("Mention Parse Tree:\n");
-		System.out.printf("Top label: %s\n",pathToM.get(npIndex).getFirst());
-		System.out.println(PennTreeRenderer.render(sTree.getSubTree(pathToM.subList(0, npIndex+1))));
+		//System.out.printf("Mention Parse Tree:\n");
+		//System.out.printf("Top label: %s\n",pathToM.get(npIndex).getFirst());
+		//System.out.println(PennTreeRenderer.render(sTree.getSubTree(pathToM.subList(0, npIndex+1))));
 		
 
 		//Go up to first NP or s
@@ -202,9 +202,9 @@ public class RuleBased implements CoreferenceSystem {
 			xIndex--;
 		}
 		
-		System.out.printf("First X \n");
-		System.out.printf("Top label: %s\n",pathToM.get(xIndex).getFirst());
-		System.out.println(PennTreeRenderer.render(sTree.getSubTree(pathToM.subList(0, xIndex+1))));
+		//System.out.printf("First X \n");
+		//System.out.printf("Top label: %s\n",pathToM.get(xIndex).getFirst());
+		//System.out.println(PennTreeRenderer.render(sTree.getSubTree(pathToM.subList(0, xIndex+1))));
 		
 		//Search for antecedents below X to the left of p
 		Tree<String> X = sTree.getSubTree(pathToM.subList(0, xIndex+1));
@@ -221,8 +221,8 @@ public class RuleBased implements CoreferenceSystem {
 				X = sTree.getSubTree(pathToM.subList(0, xIndex+1));
 			}while (!(isSLabel(X.getLabel()) || X.getLabel().equals("NP") || X.getLabel().equals("ROOT")));
 
-			System.out.printf("Next X \n");
-			System.out.println(PennTreeRenderer.render(X));
+			//System.out.printf("Next X \n");
+			//System.out.println(PennTreeRenderer.render(X));
 			
 			//If path to X came from non-head phrase of X.....
 			if (X.getLabel().equals("NP") && !m.parse.equals(X) && getMentionFromTree(X,m.sentence,m.doc)!=null){
@@ -251,7 +251,7 @@ public class RuleBased implements CoreferenceSystem {
 		return null;
 	}
 
-	Mention bfsNPLeft(Tree<String> X, Tree<String> p, Mention m, boolean npInBetween){
+	public static Mention bfsNPLeft(Tree<String> X, Tree<String> p, Mention m, boolean npInBetween){
 		//Breadth first search for NP from each child of X left of p
 		for (int j=0;j<X.getChildren().size();j++){
 			if (X.getChildren().get(j).equals(p))
@@ -281,11 +281,11 @@ public class RuleBased implements CoreferenceSystem {
 		return null;
 	}
 
-	boolean isSLabel(String label){
+	public static boolean isSLabel(String label){
 		return label.equals("S") || label.equals("SBARQ");
 	}
 	
-	Mention bfsNPRight(Tree<String> X, Tree<String> p, Mention m){
+	public static Mention bfsNPRight(Tree<String> X, Tree<String> p, Mention m){
 		//Breadth first search for NP from each child of X right of p
 		int i=0;
 		while(i<X.getChildren().size() && !X.getChildren().get(i).equals(p)) i++;
@@ -298,7 +298,7 @@ public class RuleBased implements CoreferenceSystem {
 		return null;
 	}
 
-	Mention bfsNP(Tree<String> tree, Mention m, Sentence s, boolean deepSearch){
+	public static Mention bfsNP(Tree<String> tree, Mention m, Sentence s, boolean deepSearch){
 		//Breadth first search of tree for an NP node
 		Queue<Tree<String>> queue = new LinkedList<Tree<String>>();
 		queue.add(tree);
@@ -317,7 +317,7 @@ public class RuleBased implements CoreferenceSystem {
 		return null;
 	}
 
-	Mention getMentionFromTree(Tree<String> tree, Sentence s, Document doc){
+	public static Mention getMentionFromTree(Tree<String> tree, Sentence s, Document doc){
 		for (Mention m : doc.getMentions()){
 			if (m.sentence.equals(s) && m.parse.equals(tree))
 				return m;
@@ -326,39 +326,39 @@ public class RuleBased implements CoreferenceSystem {
 	}
 	
 	//Check if pronoun assignment is valid
-	boolean validPronoun (Mention m, Pronoun p){
+	public static boolean validPronoun (Mention m, Pronoun p){
 		if (p==null || m ==null)
 			return false;
-		System.out.printf("Checkeing pronoun %s\n",p.toString());
-		System.out.printf("Checking head word %s \n",m.headWord());
+		//System.out.printf("Checkeing pronoun %s\n",p.toString());
+		//System.out.printf("Checking head word %s \n",m.headWord());
 		//See if mention is a pronoun
 		Pronoun p2 = Pronoun.valueOrNull(m.headWord());
 		if (p2!=null){
 			//Check plurality
 			if (!xor(p.plural,p2.plural)){
-				System.out.println("Plural failed");
+				//System.out.println("Plural failed");
 				return false;
 			}
 			//Check gender
 			if (!p.gender.isCompatible(p2.gender)){
-				System.out.println("gender failed");
+				//System.out.println("gender failed");
 				return false;
 			}
 			//Check speaker
 			if (!p.speaker.equals(p2.speaker)){
-				System.out.println("speaker failed");
+				//System.out.println("speaker failed");
 				return false;
 			}
 		} else {
 			//Check plurality
 			if (m.headToken().isNoun() && !xor(p.plural,m.headToken().isPluralNoun())){
-				System.out.println("Plural failed");
+				//System.out.println("Plural failed");
 				return false;
 			}
 			if (Name.isName(m.headWord())) {
 				if(!p.gender.isCompatible(Name.get(m.headWord()).gender))
 				{
-					System.out.println("gender failed");
+					//System.out.println("gender failed");
 					return false;
 				}
 			}
@@ -366,7 +366,7 @@ public class RuleBased implements CoreferenceSystem {
 		return true;
 	}
 
-	boolean xor(boolean first, boolean second){
+	public static boolean xor(boolean first, boolean second){
 		return (first && second) || (!first && !second);
 	}
 }

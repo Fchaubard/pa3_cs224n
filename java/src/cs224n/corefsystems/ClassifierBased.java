@@ -2,9 +2,14 @@ package cs224n.corefsystems;
 
 import cs224n.coref.*;
 import cs224n.coref.Feature.FixedIsButCandidateIsNotPronoun;
+import cs224n.coref.Feature.FixedIsNoun;
 import cs224n.coref.Feature.FixedMentionSize;
+import cs224n.coref.Feature.FixedWordLength;
+import cs224n.coref.Feature.IsCapitalizedFixed;
 import cs224n.coref.Feature.IsLeafFixed;
+import cs224n.coref.Feature.IsMentionBetweenFixedAndCandidate;
 import cs224n.coref.Feature.IsPhrasalFixed;
+import cs224n.coref.Feature.IsPossessiveFixed;
 import cs224n.coref.Feature.IsPretermFixed;
 import cs224n.coref.Feature.NeitherArePronouns;
 import cs224n.coref.Pronoun.Speaker;
@@ -18,7 +23,7 @@ import edu.stanford.nlp.stats.Counter;
 import edu.stanford.nlp.util.Triple;
 import edu.stanford.nlp.util.logging.RedwoodConfiguration;
 import edu.stanford.nlp.util.logging.StanfordRedwoodConfiguration;
-
+import cs224n.corefsystems.RuleBased;
 import java.text.DecimalFormat;
 import java.util.*;
 
@@ -40,31 +45,83 @@ public class ClassifierBased implements CoreferenceSystem {
 			/*
 			 * TODO: Create a set of active features
 			 */
-			Feature.ExactMatch.class,
+
+			//////////////////////////////////////
+			// 5 Low Hanging Fruit Features    //
+			//////////////////////////////////////
+			
+			/*Feature.ExactMatch.class,
 			Feature.IsSameSex.class, // doesnt matter
-			Feature.FixedIsPronoun.class, 
-			Feature.CandidateIsPronoun.class, 
-			Feature.SameNumber.class,
-			Feature.NeitherArePronouns.class, 
-			Feature.BothArePronouns.class,
-			Feature.FixedIsButCandidateIsNotPronoun.class,
-			Feature.CandidateIsButFixedIsNotPronoun.class,
+			Feature.IsMentionBetweenFixedAndCandidate.class,
 			Feature.SameHeadWord.class, // matter a lot
+			Feature.IsHobbs.class,
+			
+			
+			
+			
+
+			//////////////////////////////////////
+			// Attempts to fix Pronoun issues   //
+			//////////////////////////////////////
+			
+			//Feature.FixedIsPronoun.class, 
+			//Feature.CandidateIsPronoun.class, 
+			/*Feature.NeitherArePronouns.class, 
+			//Pair.make(Feature.ExactMatch.class, Feature.SameNumber.class),
+			//Pair.make(Feature.SameSpeaker.class, Feature.SameHeadWord.class),
+			Feature.IsFirstPersonSpeakerCandidate.class,
+			Pair.make(Feature.IsHobbs.class, Feature.IsFirstPersonSpeakerCandidate.class),
+			Pair.make(Feature.IsHobbs.class, Feature.FixedIsButCandidateIsNotPronoun.class),
+			//Feature.BothArePronouns.class,
+			//Feature.FixedIsButCandidateIsNotPronoun.class,
+			//Feature.CandidateIsButFixedIsNotPronoun.class,
+			
+			
+			
+			
+			
+			//////////////////////////////////////
+			// Attempts to fix Exact Match issues   //
+			//////////////////////////////////////
+
+			
+			
+			//Pair.make(Feature.BothAreCapitalizedAndNotPronouns.class, Feature.ExactMatch.class),
+			
+			/*Feature.IsCapitalizedFixed.class, 
+			Feature.IsCapitalizedCandidate.class, 
+			Feature.IsPossessiveFixed.class, 
+			Feature.IsPossessiveCandidate.class,*/
+			//Feature.BothAreCapitalizedAndNotPronouns.class,
+			//
+			
+			
+			
+			
+			//////////////////////////////////////
+			// other features to try out       //
+			//////////////////////////////////////
+			/*Feature.JaccardBuckets.class, // at 10 buckets matters a bit
+			Feature.SameNumber.class,
+			
 			Feature.MentionDistance.class,  // a little bit but reallllly low
 			Feature.SameSpeaker.class,
 			Feature.SamePOS.class,
 			Feature.SameNER.class,
+			
 			Feature.HeadWordMentionDistance.class, // doesnt matter
 			Feature.NamedEntityTypeCandidate.class, // candidates REALLY dont matter
-			Feature.POSTypeCandidate.class,
-			Feature.SpeakerTypeCandidate.class,
 			Feature.NamedEntityTypeFixed.class, // fixed matter alittle
+			Feature.SpeakerTypeCandidate.class,
 			Feature.POSTypeFixed.class,
+			Feature.POSTypeCandidate.class,
+			
 			Feature.SpeakerTypeFixed.class,
 			Feature.IsProperNounFixed.class, //doesnt matter
 			Feature.IsProperNounCandidate.class,//doesnt matter
 			Feature.IsSameNPersonSpeaker.class, //doesnt matter
 			Feature.IsNthPersonSpeakerFixed.class,
+			
 			Feature.IsNthPersonSpeakerCandidate.class,
 			Feature.NthTypeFixed.class,
 			Feature.NthTypeCandidate.class,
@@ -73,18 +130,44 @@ public class ClassifierBased implements CoreferenceSystem {
 			
 			Feature.IsLeafFixed.class, 
 			Feature.IsLeafCandidate.class, 
+			//Pair.make(Feature.IsLeafFixed.class, Feature.IsLeafCandidate.class),
+			
 			Feature.IsPhrasalFixed.class, 
 			Feature.IsPhrasalCandidate.class, 
 			Feature.IsPretermFixed.class, 
 			Feature.IsPretermCandidate.class,
 			Feature.ParseLabelFixed.class, // REALLY MATTERED!
 			Feature.ParseLabelCandidate.class, // YES! 
-			Feature.IsQuotedFixed.class,
-			Feature.IsQuotedCandidate.class, // not  important
-			//Feature.FixedMentionSize.class, // matters alittle
-			//Feature.CandidateMentionSize.class, // this and the 1 above made our performance go down!!!!
+			Feature.FixedMentionSize.class, // matters alittle
 			
-			//Good!
+			
+			//Feature.IsQuotedFixed.class,
+			//Feature.IsQuotedCandidate.class, // not  important
+			/*Feature.IsCapitalizedFixed.class, 
+			Feature.IsCapitalizedCandidate.class, 
+			Feature.IsPossessiveFixed.class, 
+			Feature.IsPossessiveCandidate.class,*/
+			//Feature.BothAreCapitalizedAndNotPronouns.class,
+			//Pair.make(Feature.BothAreCapitalizedAndNotPronouns.class, Feature.ExactMatch.class),
+			//Feature.CandidateMentionSize.class, // this and the 1 above made our performance go down!!!!   */
+			//Feature.IsMentionBetweenFixedAndCandidate.class,
+			//Feature.IsFirstPersonSpeakerFixed.class,
+			//Feature.IsFirstPersonSpeakerCandidate.class,
+			//Pair.make(Feature.IsFirstPersonSpeakerFixed.class, Feature.IsFirstPersonSpeakerCandidate.class),
+			//Feature.FixedIsNoun.class,
+			//Feature.CandidateIsNoun.class, 
+			//Feature.FixedWordLength.class, 
+			//Feature.CandidateWordLength.class,
+			//Pair.make(Feature.CandidateIsNoun.class, Feature.FixedIsNoun.class),
+			//Feature.PronounTypeCandidate.class,
+			//Feature.PronounTypeFixed.class,
+			/*Feature.ExactMatch.class,
+			Feature.IsSameSex.class, // doesnt matter
+			Feature.IsMentionBetweenFixedAndCandidate.class,
+			Feature.SameHeadWord.class, // matter a lot
+			Feature.IsHobbs.class,
+			
+			//Good!*/
 			//Feature.ExactMatch.class
 			//Feature.SameHeadWord.class, 
 			//Feature.MentionDistance.class,
@@ -92,6 +175,65 @@ public class ClassifierBased implements CoreferenceSystem {
 			//skeleton for how to create a pair feature
 			//Pair.make(Feature.IsFeature1.class, Feature.IsFeature2.class),
 			
+			
+			
+			
+			//////////////////////////////////////
+			// final list of good features     //
+			//////////////////////////////////////
+			Feature.ExactMatch.class,
+			Feature.IsSameSex.class, // doesnt matter
+			Feature.FixedIsPronoun.class, 
+			Feature.CandidateIsPronoun.class, 
+			Feature.SameNumber.class,
+			Feature.NeitherArePronouns.class, 
+			//Pair.make(Feature.ExactMatch.class, Feature.SameNumber.class),
+			//Pair.make(Feature.SameSpeaker.class, Feature.SameHeadWord.class),
+			Feature.IsHobbs.class,
+			Pair.make(Feature.IsHobbs.class, Feature.IsFirstPersonSpeakerCandidate.class),
+			Pair.make(Feature.IsHobbs.class, Feature.FixedIsButCandidateIsNotPronoun.class),
+			
+			//Feature.BothArePronouns.class,
+			Feature.FixedIsButCandidateIsNotPronoun.class,
+			Feature.CandidateIsButFixedIsNotPronoun.class,
+			Feature.SameHeadWord.class, // matter a lot
+			Feature.MentionDistance.class,  // a little bit but reallllly low
+			Feature.SameSpeaker.class,
+			Feature.SamePOS.class,
+			Feature.SameNER.class,
+			
+			Feature.HeadWordMentionDistance.class, // doesnt matter
+			Feature.NamedEntityTypeCandidate.class, // candidates REALLY dont matter
+			Feature.NamedEntityTypeFixed.class, // fixed matter alittle
+			Feature.SpeakerTypeCandidate.class,
+			Feature.POSTypeFixed.class,
+			Feature.POSTypeCandidate.class,
+			
+			Feature.SpeakerTypeFixed.class,
+			Feature.IsProperNounFixed.class, //doesnt matter
+			Feature.IsProperNounCandidate.class,//doesnt matter
+			Feature.IsSameNPersonSpeaker.class, //doesnt matter
+			Feature.IsNthPersonSpeakerFixed.class,
+			
+			Feature.IsNthPersonSpeakerCandidate.class,
+			Feature.NthTypeFixed.class,
+			Feature.NthTypeCandidate.class,
+			Feature.MentionDistanceViaMention.class,
+			Feature.MentionDistanceViaSentence.class,
+			
+			Feature.IsLeafFixed.class, 
+			Feature.IsLeafCandidate.class, 
+			//Pair.make(Feature.IsLeafFixed.class, Feature.IsLeafCandidate.class),
+			
+			Feature.IsPhrasalFixed.class, 
+			Feature.IsPhrasalCandidate.class, 
+			Feature.IsPretermFixed.class, 
+			Feature.IsPretermCandidate.class,
+			Feature.ParseLabelFixed.class, // REALLY MATTERED!
+			Feature.ParseLabelCandidate.class, // YES! 
+			//Feature.IsQuotedFixed.class,
+			//Feature.IsQuotedCandidate.class, // not  important
+			Feature.FixedMentionSize.class, // matters alittle
 	});
 
 
@@ -216,6 +358,51 @@ public class ClassifierBased implements CoreferenceSystem {
 				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsProperNounFixed", (new Feature.IsProperNounFixed( onPrix )).value?1:0);
 				return new Feature.IsProperNounFixed( onPrix );
 			
+			}else if(clazz.equals(Feature.IsMentionBetweenFixedAndCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsMentionBetweenFixedAndCandidate", (new Feature.IsMentionBetweenFixedAndCandidate( onPrix,candidate )).value?1:0);
+				return new Feature.IsMentionBetweenFixedAndCandidate( onPrix,candidate );
+			
+			}
+			else if(clazz.equals(Feature.FixedIsNoun.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"FixedIsNoun", (new Feature.FixedIsNoun( onPrix.headToken().isNoun() )).value?1:0);
+				return new Feature.FixedIsNoun(onPrix.headToken().isNoun() );
+			
+			}
+			else if(clazz.equals(Feature.CandidateIsNoun.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"CandidateIsNoun", (new Feature.CandidateIsNoun( candidate.headToken().isNoun() )).value?1:0);
+				return new Feature.CandidateIsNoun(candidate.headToken().isNoun() );
+			
+			}else if(clazz.equals(Feature.CandidateWordLength.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"CandidateWordLength", (new Feature.CandidateWordLength( candidate.length() )).value);
+				return new Feature.CandidateWordLength(candidate.length() );
+			
+			}else if(clazz.equals(Feature.FixedWordLength.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"FixedWordLength", (new Feature.FixedWordLength( onPrix.length() )).value);
+				return new Feature.FixedWordLength(onPrix.length() );
+			
+			}else if(clazz.equals(Feature.IsHobbs.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsHobbs", (new Feature.IsHobbs(onPrix.equals(RuleBased.hobbsCoreferent(candidate)))).value?1:0);
+				return new Feature.IsHobbs(candidate.equals(RuleBased.hobbsCoreferent(onPrix)));
+			
+			}  
+			else if(clazz.equals(Feature.IsFirstPersonSpeakerFixed.class)) {
+				boolean m = false;
+				if((Pronoun.valueOrNull(onPrix.gloss()) !=null)){
+					Speaker s1= Pronoun.valueOrNull(onPrix.gloss()).speaker;
+					m=s1.equals("FIRST_PERSON");
+				}
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsMentionBetweenFixedAndCandidate", (new Feature.IsFirstPersonSpeakerFixed( m )).value?1:0);
+				return new Feature.IsFirstPersonSpeakerFixed( m );
+			
+			}else if(clazz.equals(Feature.IsFirstPersonSpeakerCandidate.class)) {
+				boolean m = false;
+				if((Pronoun.valueOrNull(candidate.gloss()) !=null)){
+					Speaker s1= Pronoun.valueOrNull(candidate.gloss()).speaker;
+					m=s1.equals("FIRST_PERSON");
+				}
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsMentionBetweenFixedAndCandidate", (new Feature.IsFirstPersonSpeakerFixed( m )).value?1:0);
+				return new Feature.IsFirstPersonSpeakerFixed( m );
+			
 			}else if(clazz.equals(Feature.IsSameNPersonSpeaker.class)) {
 				boolean m = false;
 				if((Pronoun.valueOrNull(candidate.gloss()) !=null) && (Pronoun.valueOrNull(onPrix.gloss()) !=null)){
@@ -283,7 +470,35 @@ public class ClassifierBased implements CoreferenceSystem {
 				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"NthTypeFixed", m);
 				return new Feature.NthTypeFixed( m );
 				
-			} else if(clazz.equals(Feature.IsLeafCandidate.class)) {
+			} else if(clazz.equals(Feature.PronounTypeFixed.class)) {
+				int m=0;
+				if(Pronoun.valueOrNull(onPrix.gloss()) !=null){
+					int mycounter=0;
+					for(String s:Pronoun.allPronouns()){
+						if (onPrix.gloss().equalsIgnoreCase(s)){
+						 m = mycounter;
+						}
+						mycounter++;
+					}
+				}
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"PronounTypeFixed", m);
+				return new Feature.PronounTypeFixed( m );
+				
+			} else if(clazz.equals(Feature.PronounTypeCandidate.class)) {
+				int m=0;
+				if(Pronoun.valueOrNull(candidate.gloss()) !=null){
+					int mycounter=0;
+					for(String s:Pronoun.allPronouns()){
+						if (candidate.gloss().equalsIgnoreCase(s)){
+						 m = mycounter;
+						}
+						mycounter++;
+					}
+				}
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"PronounTypeCandidate", m);
+				return new Feature.PronounTypeCandidate( m );
+				
+			}else if(clazz.equals(Feature.IsLeafCandidate.class)) {
 				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsLeafCandidate", (new Feature.IsLeafCandidate( candidate )).value?1:0);
 				return new Feature.IsLeafCandidate( candidate );
 			
@@ -331,7 +546,31 @@ public class ClassifierBased implements CoreferenceSystem {
 				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"CandidateMentionSize", (new Feature.CandidateMentionSize( candidate )).value);
 				return new Feature.CandidateMentionSize( candidate );
 			
-			}
+			}else if(clazz.equals(Feature.IsCapitalizedCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsCapitalizedCandidate", (new Feature.IsCapitalizedCandidate( candidate )).value?1:0);
+				return new Feature.IsCapitalizedCandidate( candidate );
+			
+			} else if(clazz.equals(Feature.IsPossessiveCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsPossessiveCandidate", (new Feature.IsPossessiveCandidate( candidate )).value?1:0);
+				return new Feature.IsPossessiveCandidate( candidate );
+			
+			} else if(clazz.equals(Feature.IsCapitalizedFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsCapitalizedFixed", (new Feature.IsCapitalizedFixed( onPrix )).value?1:0);
+				return new Feature.IsCapitalizedFixed( onPrix );
+			
+			} else if(clazz.equals(Feature.IsPossessiveFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsPossessiveFixed", (new Feature.IsPossessiveFixed( onPrix )).value?1:0);
+				return new Feature.IsPossessiveFixed( onPrix );
+			
+			}   else if(clazz.equals(Feature.BothAreCapitalizedAndNotPronouns.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"BothAreCapitalizedAndNotPronouns", (new Feature.BothAreCapitalizedAndNotPronouns( onPrix,candidate )).value?1:0);
+				return new Feature.BothAreCapitalizedAndNotPronouns( onPrix,candidate );
+			
+			} else if(clazz.equals(Feature.JaccardBuckets.class)) {
+				return new Feature.JaccardBuckets( onPrix,candidate );
+			
+			}     
+
 			
 			
 			else {
@@ -434,11 +673,11 @@ public class ClassifierBased implements CoreferenceSystem {
 		Set<Boolean> labels = new HashSet<Boolean>();
 		labels.add(true);
 		//(print features)
-		for(Triple<Feature,Boolean,Double> featureInfo : this.classifier.getTopFeatures(labels, 0.0, true, 100, true)){
+		for(Triple<Feature,Boolean,Double> featureInfo : this.classifier.getTopFeatures(labels, 0.0, true, 300, true)){
 			Feature feature = featureInfo.first();
 			Boolean label = featureInfo.second();
 			Double magnitude = featureInfo.third();
-			//log(FORCE,new DecimalFormat("0.000").format(magnitude) + " [" + label + "] " + feature);
+			log(FORCE,new DecimalFormat("0.000").format(magnitude) + " [" + label + "] " + feature);
 		}
 		end_Track("Features");
 		endTrack("Training");
