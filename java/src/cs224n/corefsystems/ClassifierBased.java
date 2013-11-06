@@ -1,6 +1,14 @@
 package cs224n.corefsystems;
 
 import cs224n.coref.*;
+import cs224n.coref.Feature.FixedIsButCandidateIsNotPronoun;
+import cs224n.coref.Feature.FixedMentionSize;
+import cs224n.coref.Feature.IsLeafFixed;
+import cs224n.coref.Feature.IsPhrasalFixed;
+import cs224n.coref.Feature.IsPretermFixed;
+import cs224n.coref.Feature.NeitherArePronouns;
+import cs224n.coref.Pronoun.Speaker;
+import cs224n.coref.Pronoun.Type;
 import cs224n.util.Pair;
 import edu.stanford.nlp.classify.LinearClassifier;
 import edu.stanford.nlp.classify.LinearClassifierFactory;
@@ -32,11 +40,58 @@ public class ClassifierBased implements CoreferenceSystem {
 			/*
 			 * TODO: Create a set of active features
 			 */
-
 			Feature.ExactMatch.class,
-
+			Feature.IsSameSex.class, // doesnt matter
+			Feature.FixedIsPronoun.class, 
+			Feature.CandidateIsPronoun.class, 
+			Feature.SameNumber.class,
+			Feature.NeitherArePronouns.class, 
+			Feature.BothArePronouns.class,
+			Feature.FixedIsButCandidateIsNotPronoun.class,
+			Feature.CandidateIsButFixedIsNotPronoun.class,
+			Feature.SameHeadWord.class, // matter a lot
+			Feature.MentionDistance.class,  // a little bit but reallllly low
+			Feature.SameSpeaker.class,
+			Feature.SamePOS.class,
+			Feature.SameNER.class,
+			Feature.HeadWordMentionDistance.class, // doesnt matter
+			Feature.NamedEntityTypeCandidate.class, // candidates REALLY dont matter
+			Feature.POSTypeCandidate.class,
+			Feature.SpeakerTypeCandidate.class,
+			Feature.NamedEntityTypeFixed.class, // fixed matter alittle
+			Feature.POSTypeFixed.class,
+			Feature.SpeakerTypeFixed.class,
+			Feature.IsProperNounFixed.class, //doesnt matter
+			Feature.IsProperNounCandidate.class,//doesnt matter
+			Feature.IsSameNPersonSpeaker.class, //doesnt matter
+			Feature.IsNthPersonSpeakerFixed.class,
+			Feature.IsNthPersonSpeakerCandidate.class,
+			Feature.NthTypeFixed.class,
+			Feature.NthTypeCandidate.class,
+			Feature.MentionDistanceViaMention.class,
+			Feature.MentionDistanceViaSentence.class,
+			
+			Feature.IsLeafFixed.class, 
+			Feature.IsLeafCandidate.class, 
+			Feature.IsPhrasalFixed.class, 
+			Feature.IsPhrasalCandidate.class, 
+			Feature.IsPretermFixed.class, 
+			Feature.IsPretermCandidate.class,
+			Feature.ParseLabelFixed.class, // REALLY MATTERED!
+			Feature.ParseLabelCandidate.class, // YES! 
+			Feature.IsQuotedFixed.class,
+			Feature.IsQuotedCandidate.class, // not  important
+			//Feature.FixedMentionSize.class, // matters alittle
+			//Feature.CandidateMentionSize.class, // this and the 1 above made our performance go down!!!!
+			
+			//Good!
+			//Feature.ExactMatch.class
+			//Feature.SameHeadWord.class, 
+			//Feature.MentionDistance.class,
+			
 			//skeleton for how to create a pair feature
 			//Pair.make(Feature.IsFeature1.class, Feature.IsFeature2.class),
+			
 	});
 
 
@@ -55,21 +110,244 @@ public class ClassifierBased implements CoreferenceSystem {
 			Mention candidate = input.getSecond().mention; //the second mention (referred to as m_j in the handout)
 			Entity candidateCluster = input.getSecond().entity; //the cluster containing the second mention
 
-
 			//--Features
 			if(clazz.equals(Feature.ExactMatch.class)){
 				//(exact string match)
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"exact", (new Feature.ExactMatch(onPrix.gloss().equals(candidate.gloss())).value? 1 : 0));
 				return new Feature.ExactMatch(onPrix.gloss().equals(candidate.gloss()));
-//			} else if(clazz.equals(Feature.NewFeature.class) {
+			//} else if(clazz.equals(Feature.NewFeach.class)) {
 				/*
 				 * TODO: Add features to return for specific classes. Implement calculating values of features here.
 				 */
+				//return new Feature.NewFeach( onPrix. );
+			} else if(clazz.equals(Feature.IsSameSex.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"same sex",  (new Feature.IsSameSex( onPrix,candidate )).value? 1 : 0);
+				return new Feature.IsSameSex( onPrix,candidate );
+			
+			} else if(clazz.equals(Feature.SameNumber.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"same num", (new Feature.SameNumber( onPrix,candidate )).value? 1 : 0);
+				return new Feature.SameNumber( onPrix,candidate );
+			
+			} else if(clazz.equals(Feature.FixedIsPronoun.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"FixedIsPron", (new Feature.FixedIsPronoun( Pronoun.isSomePronoun(onPrix.gloss()) )).value? 1 : 0);
+				return new Feature.FixedIsPronoun( Pronoun.isSomePronoun(onPrix.gloss()) );
+				
+			} else if(clazz.equals(Feature.CandidateIsPronoun.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"CandidateIsPron", (new Feature.CandidateIsPronoun( Pronoun.isSomePronoun(candidate.gloss()) )).value? 1 : 0);
+				return new Feature.CandidateIsPronoun( Pronoun.isSomePronoun(candidate.gloss()) );
+			
+			} else if(clazz.equals(Feature.NeitherArePronouns.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"NeitherArePronouns", (new Feature.NeitherArePronouns( !Pronoun.isSomePronoun(onPrix.gloss()) &&  !Pronoun.isSomePronoun(candidate.gloss()) )).value ? 1 : 0);
+				return new Feature.NeitherArePronouns( !Pronoun.isSomePronoun(onPrix.gloss()) &&  !Pronoun.isSomePronoun(candidate.gloss()) );
+			
+			} else if(clazz.equals(Feature.BothArePronouns.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"BothArePronouns", (new Feature.BothArePronouns( Pronoun.isSomePronoun(onPrix.gloss()) &&  Pronoun.isSomePronoun(candidate.gloss()) )).value ? 1 : 0);
+				return new Feature.BothArePronouns( Pronoun.isSomePronoun(onPrix.gloss()) &&  Pronoun.isSomePronoun(candidate.gloss()) );
+			
+			} else if(clazz.equals(Feature.CandidateIsButFixedIsNotPronoun.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"CandidateIsButFixedIsNotPronoun", (new Feature.CandidateIsButFixedIsNotPronoun( !Pronoun.isSomePronoun(onPrix.gloss()) &&  Pronoun.isSomePronoun(candidate.gloss()) )).value ? 1 : 0);
+				return new Feature.CandidateIsButFixedIsNotPronoun( !Pronoun.isSomePronoun(onPrix.gloss()) &&  Pronoun.isSomePronoun(candidate.gloss()) );
+			
+			} else if(clazz.equals(Feature.FixedIsButCandidateIsNotPronoun.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"FixedIsButCandidateIsNotPronoun", (new Feature.FixedIsButCandidateIsNotPronoun( Pronoun.isSomePronoun(onPrix.gloss()) &&  !Pronoun.isSomePronoun(candidate.gloss()) )).value ? 1 : 0);
+				return new Feature.FixedIsButCandidateIsNotPronoun( Pronoun.isSomePronoun(onPrix.gloss()) &&  !Pronoun.isSomePronoun(candidate.gloss()) );
+			
+			} else if(clazz.equals(Feature.SameHeadWord.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"SameHeadWord", (new Feature.SameHeadWord( onPrix,candidate )).value ? 1 : 0);
+				return new Feature.SameHeadWord( onPrix,candidate );
+			
+			} else if(clazz.equals(Feature.MentionDistance.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"MentionDistance", (new Feature.MentionDistance( onPrix,candidate )).value);
+				return new Feature.MentionDistance( onPrix,candidate );
+			
+			} else if(clazz.equals(Feature.MentionDistanceViaSentence.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"MentionDistanceViaSentence", (new Feature.MentionDistanceViaSentence( onPrix,candidate )).value);
+				return new Feature.MentionDistanceViaSentence( onPrix,candidate );
+			
+			} else if(clazz.equals(Feature.MentionDistanceViaMention.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"MentionDistanceViaMention", (new Feature.MentionDistanceViaMention( onPrix,candidate )).value);
+				return new Feature.MentionDistanceViaMention( onPrix,candidate );
+			
+			} else if(clazz.equals(Feature.SameSpeaker.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"SameSpeaker", (new Feature.SameSpeaker( onPrix,candidate )).value?1:0);
+				return new Feature.SameSpeaker( onPrix,candidate );
+			
+			}  else if(clazz.equals(Feature.SamePOS.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"SamePOS", (new Feature.SamePOS( onPrix,candidate )).value?1:0);
+				return new Feature.SamePOS( onPrix,candidate );
+			
+			}  else if(clazz.equals(Feature.SameNER.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"SameNER", (new Feature.SameNER( onPrix,candidate )).value?1:0);
+				return new Feature.SameNER( onPrix,candidate );
+			
+			} else if(clazz.equals(Feature.HeadWordMentionDistance.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"HeadWordMentionDistance", (new Feature.HeadWordMentionDistance( onPrix,candidate )).value);
+				return new Feature.HeadWordMentionDistance( onPrix,candidate );
+			
+			} else if(clazz.equals(Feature.NamedEntityTypeCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"NamedEntityTypeCandidate", (new Feature.NamedEntityTypeCandidate( candidate )).str);
+				return new Feature.NamedEntityTypeCandidate( candidate );
+			
+			}else if(clazz.equals(Feature.POSTypeCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"POSTypeCandidate", (new Feature.POSTypeCandidate( candidate )).str);
+				return new Feature.POSTypeCandidate( candidate );
+			
+			}else if(clazz.equals(Feature.SpeakerTypeCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"SpeakerTypeCandidate", (new Feature.SpeakerTypeCandidate( candidate )).str);
+				return new Feature.SpeakerTypeCandidate( candidate );
+			
+			}else if(clazz.equals(Feature.NamedEntityTypeFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"NamedEntityTypeFixed", (new Feature.NamedEntityTypeFixed( onPrix )).str);
+				return new Feature.NamedEntityTypeFixed( onPrix );
+			
+			}else if(clazz.equals(Feature.POSTypeFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"POSTypeFixed", (new Feature.POSTypeFixed( onPrix )).str);
+				return new Feature.POSTypeFixed( onPrix );
+			
+			}else if(clazz.equals(Feature.SpeakerTypeFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"SpeakerTypeFixed", (new Feature.SpeakerTypeFixed( onPrix )).str);
+				return new Feature.SpeakerTypeFixed( onPrix );
+			
+			}else if(clazz.equals(Feature.IsProperNounCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsProperNounCandidate", (new Feature.IsProperNounCandidate( candidate )).value?1:0);
+				return new Feature.IsProperNounCandidate( candidate );
+			
+			}else if(clazz.equals(Feature.IsProperNounFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsProperNounFixed", (new Feature.IsProperNounFixed( onPrix )).value?1:0);
+				return new Feature.IsProperNounFixed( onPrix );
+			
+			}else if(clazz.equals(Feature.IsSameNPersonSpeaker.class)) {
+				boolean m = false;
+				if((Pronoun.valueOrNull(candidate.gloss()) !=null) && (Pronoun.valueOrNull(onPrix.gloss()) !=null)){
+					Speaker s1= Pronoun.valueOrNull(onPrix.gloss()).speaker;
+					Speaker s2= Pronoun.valueOrNull(candidate.gloss()).speaker;
+					m=s1.equals(s2);
+				}
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsSameNPersonSpeaker", m?1:0);
+				return new Feature.IsSameNPersonSpeaker( m );
+				
+			}else if(clazz.equals(Feature.IsNthPersonSpeakerFixed.class)) {
+				int m=0;
+				if(Pronoun.valueOrNull(onPrix.gloss()) !=null){
+					Speaker s1= Pronoun.valueOrNull(onPrix.gloss()).speaker;
+					int mycounter=0;
+					for(Speaker s:Speaker.values()){
+						if (s1.equals(s)){
+						 m = mycounter;
+						}
+						mycounter++;
+					}
+				}
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"NthPersonSpeakerFixed", m);
+				return new Feature.IsNthPersonSpeakerFixed( m );
+			}else if(clazz.equals(Feature.IsNthPersonSpeakerCandidate.class)) {
+				int m=0;
+				if(Pronoun.valueOrNull(candidate.gloss()) !=null){
+					Speaker s1= Pronoun.valueOrNull(candidate.gloss()).speaker;
+					int mycounter=0;
+					for(Speaker s:Speaker.values()){
+						if (s1.equals(s)){
+						 m = mycounter;
+						}
+						mycounter++;
+					}
+				}
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsNthPersonSpeakerCandidate", m);
+				return new Feature.IsNthPersonSpeakerCandidate( m );
+			}else if(clazz.equals(Feature.NthTypeFixed.class)) {
+				int m=0;
+				if(Pronoun.valueOrNull(onPrix.gloss()) !=null){
+					Type s1= Pronoun.valueOrNull(onPrix.gloss()).type;
+					int mycounter=0;
+					for(Type s:Type.values()){
+						if (s1.equals(s)){
+						 m = mycounter;
+						}
+						mycounter++;
+					}
+				}
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"NthTypeFixed", m);
+				return new Feature.NthTypeFixed( m );
+			}else if(clazz.equals(Feature.NthTypeCandidate.class)) {
+				int m=0;
+				if(Pronoun.valueOrNull(candidate.gloss()) !=null){
+					Type s1= Pronoun.valueOrNull(candidate.gloss()).type;
+					int mycounter=0;
+					for(Type s:Type.values()){
+						if (s1.equals(s)){
+						 m = mycounter;
+						}
+						mycounter++;
+					}
+				}
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"NthTypeFixed", m);
+				return new Feature.NthTypeFixed( m );
+				
+			} else if(clazz.equals(Feature.IsLeafCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsLeafCandidate", (new Feature.IsLeafCandidate( candidate )).value?1:0);
+				return new Feature.IsLeafCandidate( candidate );
+			
+			} else if(clazz.equals(Feature.IsLeafFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsLeafFixed", (new Feature.IsLeafFixed( onPrix )).value?1:0);
+				return new Feature.IsLeafFixed( onPrix );
+			
+			} else if(clazz.equals(Feature.IsPhrasalCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsPhrasalCandidate", (new Feature.IsPhrasalCandidate( candidate )).value?1:0);
+				return new Feature.IsPhrasalCandidate( candidate );
+			
+			} else if(clazz.equals(Feature.IsPhrasalFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsPhrasalFixed", (new Feature.IsPhrasalFixed( onPrix )).value?1:0);
+				return new Feature.IsPhrasalFixed( onPrix );
+			
+			} else if(clazz.equals(Feature.IsPretermCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsPretermCandidate", (new Feature.IsPretermCandidate( candidate )).value?1:0);
+				return new Feature.IsPretermCandidate( candidate );
+			
+			} else if(clazz.equals(Feature.IsPretermFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsPretermFixed", (new Feature.IsPretermFixed( onPrix )).value?1:0);
+				return new Feature.IsPretermFixed( onPrix );
+			
+			} else if(clazz.equals(Feature.ParseLabelCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"ParseLabelCandidate", (new Feature.ParseLabelCandidate( candidate )).str);
+				return new Feature.ParseLabelCandidate( candidate );
+			
+			} else if(clazz.equals(Feature.ParseLabelFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"ParseLabelFixed", (new Feature.ParseLabelFixed( onPrix )).str);
+				return new Feature.ParseLabelFixed( onPrix );
+			
+			}else if(clazz.equals(Feature.IsQuotedCandidate.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsQuotedCandidate", (new Feature.IsQuotedCandidate( candidate )).value?1:0);
+				return new Feature.IsQuotedCandidate( candidate );
+			
+			} else if(clazz.equals(Feature.IsQuotedFixed.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"IsQuotedFixed", (new Feature.IsQuotedFixed( onPrix )).value?1:0);
+				return new Feature.IsQuotedFixed( onPrix );
+			
+			}else if(clazz.equals(Feature.FixedMentionSize.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"FixedMentionSize", (new Feature.FixedMentionSize( onPrix )).value);
+				return new Feature.FixedMentionSize( onPrix );
+			
+			} else if(clazz.equals(Feature.CandidateMentionSize.class)) {
+				printTheResultsForThisFeature( onPrix.gloss(), candidate.gloss(),"CandidateMentionSize", (new Feature.CandidateMentionSize( candidate )).value);
+				return new Feature.CandidateMentionSize( candidate );
+			
 			}
+			
+			
 			else {
 				throw new IllegalArgumentException("Unregistered feature: " + clazz);
 			}
 		}
-
+		private void printTheResultsForThisFeature(String mi, String mj, String className, Integer value){
+			if(false)
+				System.out.printf(" mi: \"%s\" mj:\"%s\"  %s result: \"%d\" \n",    mi,   mj, className, value);
+			return;
+		}
+		private void printTheResultsForThisFeature(String mi, String mj, String className, String value){
+			if(false)
+				System.out.printf(" mi: \"%s\" mj:\"%s\"  %s result: \"%s\" \n",    mi,   mj, className, value);
+			return;
+		}
 		@SuppressWarnings({"unchecked"})
 		@Override
 		protected void fillFeatures(Pair<Mention, ClusteredMention> input, Counter<Feature> inFeatures, Boolean output, Counter<Feature> outFeatures) {

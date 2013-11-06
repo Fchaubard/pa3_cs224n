@@ -53,6 +53,7 @@ public class BaselineCoreferenceSystem implements CoreferenceSystem{
     for(Mention m : doc.getMentions()){
       //(...get its text)
       String mentionString = m.gloss();
+      
       //(...if we've seen this text before...)
       if(clusters.containsKey(mentionString)){
         //(...add it to the cluster)
