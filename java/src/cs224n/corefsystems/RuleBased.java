@@ -15,6 +15,7 @@ import cs224n.coref.Mention;
 import cs224n.coref.Name;
 import cs224n.coref.Pronoun;
 import cs224n.coref.Sentence;
+import cs224n.coref.Sentence.Token;
 import cs224n.ling.Tree;
 import cs224n.ling.Trees.PennTreeRenderer;
 import cs224n.util.Pair;
@@ -33,14 +34,14 @@ public class RuleBased implements CoreferenceSystem {
 	        List<Mention> mentions = doc.getMentions();
 	        //--Iterate over mentions
 	        for(Mention m : mentions){
-	        	if (!Pronoun.isSomePronoun(m.headWord()))
+	        	if (!checkPronoun(m.headWord(),m.headToken()))
 	        		coreferentHeads.put(m.headWord(), new ArrayList<String>());
 	        }
 	        //--Iterate Over Coreferent Mention Pairs
 	        for(Entity e : clusters){
 	          for(Pair<Mention, Mention> mentionPair : e.orderedMentionPairs()){
-	        	   	if (!Pronoun.isSomePronoun(mentionPair.getFirst().headWord()) && 
-	        	   			!Pronoun.isSomePronoun(mentionPair.getSecond().headWord()))
+	        	   	if (!checkPronoun(mentionPair.getFirst().headWord(),mentionPair.getFirst().headToken()) && 
+	        	   			!checkPronoun(mentionPair.getSecond().headWord(),mentionPair.getSecond().headToken()))
 	        	   		coreferentHeads.get(mentionPair.getFirst().headWord()).add(mentionPair.getSecond().headWord());
 	          }
 	        }
@@ -72,7 +73,7 @@ public class RuleBased implements CoreferenceSystem {
 			//(...get its text)
 			String mentionString = m.gloss();
 			//If its not a pronoun
-			if (!checkPronoun(m.headWord())) {
+			if (!checkPronoun(m.headWord(),m.headToken())) {
 				//(...if we've seen this text before...)
 				if(stringMatches.containsKey(mentionString)){
 					//Mark coreferent
@@ -103,7 +104,7 @@ public class RuleBased implements CoreferenceSystem {
 		}
 		for(Mention m : doc.getMentions()){
 			//If it is a pronoun of interest
-			if (checkPronoun(m.headWord())) {
+			if (checkPronoun(m.headWord(),m.headToken())) {
 				Mention hco = hobbsCoreferent(m);
 				if (hco!=null && !hco.equals(m)){
 					String hcoString = hco.gloss();
@@ -125,16 +126,16 @@ public class RuleBased implements CoreferenceSystem {
 		List<Mention> mentions = new ArrayList<Mention>(doc.getMentions());
 		while (!mentions.isEmpty()){
 			Mention m = mentions.get(0);
-			if (corefs.containsKey(m)){
+			if (corefs.containsKey(m) && corefs.get(m)!=null){
 				Mention h = corefs.get(m);
-				if(!clusters.containsKey(h)){
+				if(!clusters.containsKey(h)) {
 					int hIndex = mentions.indexOf(h);
 					mentions.set(0, h);
 					mentions.set(hIndex,m);
-					if (hIndex ==1){
+					if (hIndex > 0){
 						ClusteredMention newCluster = h.markSingleton();
 						cMentions.add(newCluster);
-						mentions.remove(1);
+						mentions.remove(hIndex);
 						clusters.put(h,newCluster);
 						cMentions.add(m.markCoreferent(clusters.get(h)));
 						mentions.remove(0);
@@ -156,12 +157,14 @@ public class RuleBased implements CoreferenceSystem {
 	}
 
 	//Returns if a pronoun is not first or second person
-	boolean checkPronoun(String headWord){
+	boolean checkPronoun(String headWord, Token token){
 		if (Pronoun.isSomePronoun(headWord)){
 			Pronoun pn = Pronoun.valueOrNull(headWord);
-			if (pn!=null && (pn.speaker == Pronoun.Speaker.FIRST_PERSON || pn.speaker == Pronoun.Speaker.SECOND_PERSON))
+			if (pn==null)
 				return false;
-			else 
+			if (pn.speaker == Pronoun.Speaker.FIRST_PERSON || pn.speaker == Pronoun.Speaker.SECOND_PERSON)
+				return false;
+			else
 				return true;
 		} 
 		return false;
