@@ -4,15 +4,20 @@ import cs224n.coref.ClusteredMention;
 import cs224n.coref.Document;
 import cs224n.coref.Entity;
 import cs224n.coref.Mention;
+import cs224n.coref.Sentence;
 import cs224n.corefsystems.BaselineCoreferenceSystem;
 import cs224n.corefsystems.CoreferenceSystem;
 import cs224n.util.*;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.PriorityQueue;
+import org.json.*;
 
 /**
  * The framework for running your coreference system.
@@ -31,10 +36,6 @@ public class CoreferenceTester<SYS extends CoreferenceSystem> {
   private static final boolean plaintext = true;
 
   public static String dataPath = "/afs/ir/class/cs224n/pa3/data/";
-
-  public static enum DataType {
-    TRAIN, DEV, TEST
-  }
 
   public static class SerializedDatum implements Serializable, Decodable {
     public final Document document;
@@ -127,6 +128,10 @@ public class CoreferenceTester<SYS extends CoreferenceSystem> {
       if(index != lines.length){ throw new IllegalStateException("Extra lines in file: " + index + " read of " + lines.length); }
       return new SerializedDatum(doc,goldMentions,predictedMentions,goldCLusters);
     }
+  }
+
+public static enum DataType {
+    TRAIN, DEV, TEST
   }
 
   public static class CoreferenceScore {
@@ -482,11 +487,158 @@ public class CoreferenceTester<SYS extends CoreferenceSystem> {
       Collection<Entity> gold = datum.goldClusters;
       debug.append("=====Document " + doc.id.replaceAll("/",".") + "=====\n")
           .append(doc.debug(guess,gold)).append("\n");
+      
+      // print out the id 
+     
     }
     //--Return
     return debug.toString();
   }
 
+  
+  public boolean createJSON(File[] data, Properties props, CoreferenceScore trainScore, CoreferenceScore testScore) throws JSONException{
+	    //--Variables
+	    //(get properties)
+	    String mentionType = props.getProperty("mentionExtractor", "gold");
+	    String numDocumentsStr = props.getProperty("mistakes");
+	    
+	    int numDocuments = 0;
+	    if(numDocumentsStr.equalsIgnoreCase("true")){
+	      numDocuments = 5;
+	    } else {
+	      numDocuments = Integer.parseInt(numDocumentsStr);
+	    }
+	    //(debug printout)
+	    StringBuilder debug = new StringBuilder();
+	    //(documents read)
+	    int numDocumentsRead = 0;
+	    
+	    JSONArray output = new JSONArray();
+	    
+	    //--Run Coreference
+	    for(File f : data){
+	      if(numDocumentsRead >= numDocuments){ break; }
+	      numDocumentsRead += 1;
+	      SerializedDatum datum = getDatum(f);
+	      Document doc = datum.document;
+	      //(get mentions)
+	      List<Mention> mentions = null;
+	      if(mentionType.equalsIgnoreCase("gold")){
+	        mentions = datum.goldMentions;
+	      } else if(mentionType.equalsIgnoreCase("predicted")) {
+	        mentions = datum.predictedMentions;
+	      } else {
+	        throw new IllegalArgumentException("Unknown mention extractor: " + mentionType);
+	      }
+	      //(set mentions)
+	      datum.document.setMentions(mentions);
+	      //(run coreference)
+	      Collection<ClusteredMention> guess = system.runCoreference(datum.document);
+	      //(enter score)
+	      Collection<Entity> gold = datum.goldClusters;
+	      
+	      debug.append("=====Document " + doc.id.replaceAll("/",".") + "=====\n")
+	          .append(doc.debug(guess,gold)).append("\n");
+	      
+	      
+	      JSONObject scoreJSON = new JSONObject();
+	      scoreJSON.put("MUC_P",trainScore.precisionMUC());
+	      scoreJSON.put("MUC_R",trainScore.recallMUC());
+	      scoreJSON.put("MUC_F1",trainScore.f1MUC());
+	      
+	      scoreJSON.put("B3_P",trainScore.precisionB3());
+	      scoreJSON.put("B3_R",trainScore.recallB3());
+	      scoreJSON.put("B3_F1",trainScore.f1B3());
+	      
+	      
+	      
+	      // create the list of strings for the doc
+	      JSONArray contentArray = new JSONArray();
+	      
+	      HashMap<Sentence, Integer> sentenceToSentenceBeginMap = new HashMap<Sentence,Integer>();
+	      int i=0;
+	      for (Sentence s : doc.sentences){
+	    	  for (String w:s.words){
+		    	  contentArray.put(w);	    		  
+	    	  }
+	    	  sentenceToSentenceBeginMap.put(s,i);
+	    	  i+=s.length();
+	      }
+	      
+	      // create start and end
+	      JSONArray startsArray = new JSONArray();
+	      JSONArray endsArray = new JSONArray();
+	      
+	      for (Mention m : doc.getMentions()){
+	    	  startsArray.put(m.beginIndexInclusive+sentenceToSentenceBeginMap.get(m.sentence));
+	    	  endsArray.put(m.endIndexExclusive+sentenceToSentenceBeginMap.get(m.sentence));
+	      }
+	      
+	      // gold cluster
+	      JSONArray goldArray = new JSONArray();
+	      ArrayList<Integer> mentionIndxArrayList = new ArrayList<Integer>(Collections.nCopies(doc.getMentions().size(), 0));
+	      for (Entity e: gold){
+	    	  
+	    	  for (Mention m:e.mentions){
+	    		
+	    		  try{
+	    			  mentionIndxArrayList.set(doc.getMentions().indexOf(m), e.uniqueID);
+	    		  }
+	    		  catch(Exception eee){
+	    			  System.out.print("asdfa"+(doc.getMentions().indexOf(m)));
+	    		  }
+	    	  }
+	      }
+	      goldArray.put(mentionIndxArrayList);
+	      
+	      
+	      // your cluster
+	      JSONArray yourArray = new JSONArray();
+	      ArrayList<Integer> guessMentionIndxArrayList = new ArrayList<Integer>(Collections.nCopies(doc.getMentions().size(), 0));
+	      for (ClusteredMention cm: guess){
+	    	  guessMentionIndxArrayList.set(doc.getMentions().indexOf(cm.mention), cm.entity.uniqueID);
+	      }
+	      yourArray.put(guessMentionIndxArrayList);
+	      
+	      JSONObject contentJSON = new JSONObject();
+	      contentJSON.put("string", contentArray);
+	      contentJSON.put("mentionStart", startsArray);
+	      contentJSON.put("mentionEnd", endsArray);
+	      contentJSON.put("gold", goldArray);
+	      contentJSON.put("guess", yourArray);
+	      
+	      JSONObject docJSON = new JSONObject();
+	      docJSON.put("id",doc.id);
+	      docJSON.put("score",scoreJSON);
+	      docJSON.put("content",contentJSON);
+	      
+		  output.put(docJSON);
+	    }
+	    // print out the id 
+      	PrintWriter writer;
+
+		try {
+			writer = new PrintWriter("/Users/francoischaubard/Desktop/Francois_and_colin_special.json", "UTF-8");
+			writer.println(output.toString());
+		    writer.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+	      	System.out.print("blah");
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+	      	System.out.print("blah");
+			e.printStackTrace();
+		}
+		
+		//--Return
+	    return true;
+	  }
+
+  
+  
+  
+  
   private static SerializedDatum getDatum(File serializedDatum){
     try{
         if(plaintext){
@@ -628,6 +780,17 @@ public class CoreferenceTester<SYS extends CoreferenceSystem> {
       System.out.println("----------------");
       System.out.println(tester.debug(test, props));
     }
+    if(props.containsKey("json")){
+        System.out.println("----------------");
+        System.out.println(" CREATING JSON FILE");
+        System.out.println("----------------");
+        try {
+			tester.createJSON(test, props, trainScore, testScore);
+		} catch (JSONException e) {
+			// TODO Auto-generated catch block
+	      	e.printStackTrace();
+		}
+      }
     //(report)
     System.out.println("--------------------");
     System.out.println(" COREFERENCE SCORES");
