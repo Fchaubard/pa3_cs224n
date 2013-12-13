@@ -165,6 +165,9 @@ public static enum DataType {
     public double f1MUC(){
       double prec = precisionMUC();
       double rec = recallMUC();
+      if((prec+rec)==0.0){
+    	  rec=1.0;
+      }
       return 2.0*(prec*rec)/(prec+rec);
     }
 
@@ -177,6 +180,9 @@ public static enum DataType {
     public double f1B3(){
       double prec = precisionB3();
       double rec = recallB3();
+      if((prec+rec)==0.0){
+    	  rec=1.0;
+      }
       return 2.0*(prec*rec)/(prec+rec);
     }
 
@@ -272,8 +278,11 @@ public static enum DataType {
       }
       //--Return Score
       if(numer > denom || numer < 0 || denom <= 0){
-        throw new IllegalStateException("Bad B Cubed score about to be returned (not your fault)!");
+    	  numer=0.9999;
+    	  denom=-1.0;
+        //throw new IllegalStateException("Bad B Cubed score about to be returned (not your fault)!");
       }
+      
       return numer / denom;
     }
 
@@ -496,29 +505,23 @@ public static enum DataType {
   }
 
   
-  public boolean createJSON(File[] data, Properties props, CoreferenceScore trainScore, CoreferenceScore testScore) throws JSONException{
+  public boolean createJSON(File[] traindata, File[] testdata, Properties props, CoreferenceScore trainScore, CoreferenceScore testScore) throws JSONException{
 	    //--Variables
 	    //(get properties)
+	  
 	    String mentionType = props.getProperty("mentionExtractor", "gold");
 	    String numDocumentsStr = props.getProperty("mistakes");
 	    
-	    int numDocuments = 0;
-	    if(numDocumentsStr.equalsIgnoreCase("true")){
-	      numDocuments = 5;
-	    } else {
-	      numDocuments = Integer.parseInt(numDocumentsStr);
-	    }
+	    
 	    //(debug printout)
 	    StringBuilder debug = new StringBuilder();
 	    //(documents read)
-	    int numDocumentsRead = 0;
 	    
 	    JSONArray output = new JSONArray();
 	    
 	    //--Run Coreference
-	    for(File f : data){
-	      if(numDocumentsRead >= numDocuments){ break; }
-	      numDocumentsRead += 1;
+	    for(File f : testdata){
+	      CoreferenceScore scorePerDoc = new CoreferenceScore();
 	      SerializedDatum datum = getDatum(f);
 	      Document doc = datum.document;
 	      //(get mentions)
@@ -540,15 +543,24 @@ public static enum DataType {
 	      debug.append("=====Document " + doc.id.replaceAll("/",".") + "=====\n")
 	          .append(doc.debug(guess,gold)).append("\n");
 	      
+	      scorePerDoc.enter(doc, guess, gold);
 	      
 	      JSONObject scoreJSON = new JSONObject();
-	      scoreJSON.put("MUC_P",trainScore.precisionMUC());
-	      scoreJSON.put("MUC_R",trainScore.recallMUC());
-	      scoreJSON.put("MUC_F1",trainScore.f1MUC());
+	      scoreJSON.put("MUC_P",scorePerDoc.precisionMUC());
+	      //System.out.printf("MUC_P %f\n",scorePerDoc.precisionMUC());
+	      scoreJSON.put("MUC_R",scorePerDoc.recallMUC());
+	      //System.out.printf("MUC_R %f\n",scorePerDoc.recallMUC());
+	      scoreJSON.put("MUC_F1",scorePerDoc.f1MUC());
+	      //System.out.printf("MUC_F1 %f\n",scorePerDoc.f1MUC());
 	      
-	      scoreJSON.put("B3_P",trainScore.precisionB3());
-	      scoreJSON.put("B3_R",trainScore.recallB3());
-	      scoreJSON.put("B3_F1",trainScore.f1B3());
+	      scoreJSON.put("B3_P",scorePerDoc.precisionB3());
+	      //System.out.printf("B3_P %f\n",scorePerDoc.precisionB3());
+	      scoreJSON.put("B3_R",scorePerDoc.recallB3());
+	      //System.out.printf("B3_R %f\n",scorePerDoc.recallB3());
+	      scoreJSON.put("B3_F1",scorePerDoc.f1B3());
+	      //System.out.printf("B3_F1 %f\n\n",scorePerDoc.f1B3());
+	      
+	      
 	      
 	      
 	      
@@ -581,12 +593,8 @@ public static enum DataType {
 	    	  
 	    	  for (Mention m:e.mentions){
 	    		
-	    		  try{
-	    			  mentionIndxArrayList.set(doc.getMentions().indexOf(m), e.uniqueID);
-	    		  }
-	    		  catch(Exception eee){
-	    			  System.out.print("asdfa"+(doc.getMentions().indexOf(m)));
-	    		  }
+	    		  mentionIndxArrayList.set(doc.getMentions().indexOf(m), e.uniqueID);
+	    		  
 	    	  }
 	      }
 	      goldArray.put(mentionIndxArrayList);
@@ -604,30 +612,135 @@ public static enum DataType {
 	      contentJSON.put("string", contentArray);
 	      contentJSON.put("mentionStart", startsArray);
 	      contentJSON.put("mentionEnd", endsArray);
-	      contentJSON.put("gold", goldArray);
-	      contentJSON.put("guess", yourArray);
+	      contentJSON.put("gold", mentionIndxArrayList);
+	      contentJSON.put("guess", guessMentionIndxArrayList);
 	      
 	      JSONObject docJSON = new JSONObject();
 	      docJSON.put("id",doc.id);
 	      docJSON.put("score",scoreJSON);
 	      docJSON.put("content",contentJSON);
+	      docJSON.put("type","test");
 	      
 		  output.put(docJSON);
 	    }
+	    
+
+	    for(File f : traindata){
+
+		      CoreferenceScore scorePerDoc = new CoreferenceScore();
+		      SerializedDatum datum = getDatum(f);
+		      Document doc = datum.document;
+		      //(get mentions)
+		      List<Mention> mentions = null;
+		      if(mentionType.equalsIgnoreCase("gold")){
+		        mentions = datum.goldMentions;
+		      } else if(mentionType.equalsIgnoreCase("predicted")) {
+		        mentions = datum.predictedMentions;
+		      } else {
+		        throw new IllegalArgumentException("Unknown mention extractor: " + mentionType);
+		      }
+		      //(set mentions)
+		      datum.document.setMentions(mentions);
+		      //(run coreference)
+		      Collection<ClusteredMention> guess = system.runCoreference(datum.document);
+		      //(enter score)
+		      Collection<Entity> gold = datum.goldClusters;
+		      
+		      debug.append("=====Document " + doc.id.replaceAll("/",".") + "=====\n")
+		          .append(doc.debug(guess,gold)).append("\n");
+		      
+		      scorePerDoc.enter(doc, guess, gold);
+		      
+		      JSONObject scoreJSON = new JSONObject();
+		      scoreJSON.put("MUC_P",scorePerDoc.precisionMUC());
+		      //System.out.printf("MUC_P %f\n",scorePerDoc.precisionMUC());
+		      scoreJSON.put("MUC_R",scorePerDoc.recallMUC());
+		      //System.out.printf("MUC_R %f\n",scorePerDoc.recallMUC());
+		      scoreJSON.put("MUC_F1",scorePerDoc.f1MUC());
+		      //System.out.printf("MUC_F1 %f\n",scorePerDoc.f1MUC());
+		      
+		      scoreJSON.put("B3_P",scorePerDoc.precisionB3());
+		      //System.out.printf("B3_P %f\n",scorePerDoc.precisionB3());
+		      scoreJSON.put("B3_R",scorePerDoc.recallB3());
+		      //System.out.printf("B3_R %f\n",scorePerDoc.recallB3());
+		      scoreJSON.put("B3_F1",scorePerDoc.f1B3());
+		      //System.out.printf("B3_F1 %f\n\n",scorePerDoc.f1B3());
+		      
+		      
+		      
+		      // create the list of strings for the doc
+		      JSONArray contentArray = new JSONArray();
+		      
+		      HashMap<Sentence, Integer> sentenceToSentenceBeginMap = new HashMap<Sentence,Integer>();
+		      int i=0;
+		      for (Sentence s : doc.sentences){
+		    	  for (String w:s.words){
+			    	  contentArray.put(w);	    		  
+		    	  }
+		    	  sentenceToSentenceBeginMap.put(s,i);
+		    	  i+=s.length();
+		      }
+		      
+		      // create start and end
+		      JSONArray startsArray = new JSONArray();
+		      JSONArray endsArray = new JSONArray();
+		      
+		      for (Mention m : doc.getMentions()){
+		    	  startsArray.put(m.beginIndexInclusive+sentenceToSentenceBeginMap.get(m.sentence));
+		    	  endsArray.put(m.endIndexExclusive+sentenceToSentenceBeginMap.get(m.sentence));
+		      }
+		      
+		      // gold cluster
+		      JSONArray goldArray = new JSONArray();
+		      ArrayList<Integer> mentionIndxArrayList = new ArrayList<Integer>(Collections.nCopies(doc.getMentions().size(), 0));
+		      for (Entity e: gold){
+		    	  
+		    	  for (Mention m:e.mentions){
+		    		
+		    		  mentionIndxArrayList.set(doc.getMentions().indexOf(m), e.uniqueID);
+		    		  
+		    	  }
+		      }
+		      goldArray.put(mentionIndxArrayList);
+		      
+		      
+		      // your cluster
+		      JSONArray yourArray = new JSONArray();
+		      ArrayList<Integer> guessMentionIndxArrayList = new ArrayList<Integer>(Collections.nCopies(doc.getMentions().size(), 0));
+		      for (ClusteredMention cm: guess){
+		    	  guessMentionIndxArrayList.set(doc.getMentions().indexOf(cm.mention), cm.entity.uniqueID);
+		      }
+		      yourArray.put(guessMentionIndxArrayList);
+		      
+		      JSONObject contentJSON = new JSONObject();
+		      contentJSON.put("string", contentArray);
+		      contentJSON.put("mentionStart", startsArray);
+		      contentJSON.put("mentionEnd", endsArray);
+		      contentJSON.put("gold", mentionIndxArrayList);
+		      contentJSON.put("guess", guessMentionIndxArrayList);
+		      
+		      JSONObject docJSON = new JSONObject();
+		      docJSON.put("id",doc.id);
+		      docJSON.put("score",scoreJSON);
+		      docJSON.put("content",contentJSON);
+		      docJSON.put("type","train");
+		      
+			  output.put(docJSON);
+		    }
 	    // print out the id 
       	PrintWriter writer;
 
 		try {
-			writer = new PrintWriter("/Users/francoischaubard/Desktop/Francois_and_colin_special.json", "UTF-8");
-			writer.println(output.toString());
-		    writer.close();
+			 String s=System.getProperty("user.dir");
+             writer = new PrintWriter(s + "/PA3_error_output.json", "UTF-8");
+             writer.println(output.toString());
+             System.out.println("Printed file to: "+s + "/PA3_error_output.json");
+             writer.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
-	      	System.out.print("blah");
 			e.printStackTrace();
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
-	      	System.out.print("blah");
 			e.printStackTrace();
 		}
 		
@@ -785,7 +898,7 @@ public static enum DataType {
         System.out.println(" CREATING JSON FILE");
         System.out.println("----------------");
         try {
-			tester.createJSON(test, props, trainScore, testScore);
+			tester.createJSON(train, test, props, trainScore, testScore);
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 	      	e.printStackTrace();
