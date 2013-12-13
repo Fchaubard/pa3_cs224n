@@ -520,6 +520,7 @@ public static enum DataType {
 	    JSONArray output = new JSONArray();
 	    
 	    //--Run Coreference
+
 	    for(File f : testdata){
 	      CoreferenceScore scorePerDoc = new CoreferenceScore();
 	      SerializedDatum datum = getDatum(f);
@@ -543,6 +544,7 @@ public static enum DataType {
 	      debug.append("=====Document " + doc.id.replaceAll("/",".") + "=====\n")
 	          .append(doc.debug(guess,gold)).append("\n");
 	      
+
 	      scorePerDoc.enter(doc, guess, gold);
 	      
 	      JSONObject scoreJSON = new JSONObject();
@@ -561,6 +563,7 @@ public static enum DataType {
 	      //System.out.printf("B3_F1 %f\n\n",scorePerDoc.f1B3());
 	      
 	      
+
 	      
 	      
 	      
@@ -593,8 +596,10 @@ public static enum DataType {
 	    	  
 	    	  for (Mention m:e.mentions){
 	    		
+
 	    		  mentionIndxArrayList.set(doc.getMentions().indexOf(m), e.uniqueID);
 	    		  
+
 	    	  }
 	      }
 	      goldArray.put(mentionIndxArrayList);
@@ -612,13 +617,18 @@ public static enum DataType {
 	      contentJSON.put("string", contentArray);
 	      contentJSON.put("mentionStart", startsArray);
 	      contentJSON.put("mentionEnd", endsArray);
-	      contentJSON.put("gold", mentionIndxArrayList);
-	      contentJSON.put("guess", guessMentionIndxArrayList);
+
+	      //contentJSON.put("gold", mentionIndxArrayList);
+	      //contentJSON.put("guess", guessMentionIndxArrayList);
+
+	      contentJSON.put("gold", goldArray);
+	      contentJSON.put("guess", yourArray);
 	      
 	      JSONObject docJSON = new JSONObject();
 	      docJSON.put("id",doc.id);
 	      docJSON.put("score",scoreJSON);
 	      docJSON.put("content",contentJSON);
+
 	      docJSON.put("type","test");
 	      
 		  output.put(docJSON);
@@ -727,15 +737,18 @@ public static enum DataType {
 		      
 			  output.put(docJSON);
 		    }
+
 	    // print out the id 
       	PrintWriter writer;
 
 		try {
+
 			 String s=System.getProperty("user.dir");
              writer = new PrintWriter(s + "/PA3_error_output.json", "UTF-8");
              writer.println(output.toString());
              System.out.println("Printed file to: "+s + "/PA3_error_output.json");
              writer.close();
+
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -899,6 +912,7 @@ public static enum DataType {
         System.out.println("----------------");
         try {
 			tester.createJSON(train, test, props, trainScore, testScore);
+
 		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 	      	e.printStackTrace();
